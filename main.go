@@ -8,6 +8,8 @@ import "strings"
 import "net"
 import "bufio"
 
+import "wrapper"
+
 func dumpEnv() {
 	fmt.Println(os.Args)
 
@@ -27,9 +29,7 @@ func tripple(x int, y int) (int, int, int) {
 	return x, y, x + y
 }
 
-func main() {
-	dumpEnv()
-
+func doServer() {
 	addr, _ := net.LookupTXT("www.baidu.com")
 
 	fmt.Println(addr)
@@ -54,4 +54,9 @@ func main() {
 		newmessage := strings.ToUpper(message)
 		conn.Write([]byte(newmessage + "\n"))
 	}
+}
+
+func main() {
+	n, str := wrapper.LoadFromStdIn()
+	fmt.Printf("\x02%d\x01%s\x03\n", n, str)
 }

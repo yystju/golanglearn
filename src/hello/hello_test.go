@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestHello(t *testing.T) {
+func TestHelloBasic(t *testing.T) {
 	h := (hello.NewHello("Hello"))
 
 	go h.ConsumeSays()

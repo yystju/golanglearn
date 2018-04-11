@@ -1,0 +1,8 @@
+<message>
+	<header messageClass="5011" transactionID="S01-L05-PRINT-M1_201841118327896757" reply="1">
+		<location routeID="1001" routeName="SMT-5" equipmentID="11002" equipmentName="S01-L05-PRINT-M1" zoneID="11002" zonePos="1" zoneName="S01-L05-PRINT-M1" laneNo="0" controllerGuid="SPG501" />
+	</header>
+	<body>
+		<pcb pcbSide="2" barcode="6.00.01.1133-03003i0010008" scannerMountSide="T" modelCode="6.00.01.1133-03003i" serialNo="i0010008" />
+	</body>
+</message>
