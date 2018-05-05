@@ -1,0 +1,76 @@
+package main
+
+import (
+	"bytes"
+	"encoding/binary"
+	"encoding/gob"
+	"fmt"
+	"math"
+)
+
+/*
+#include <stdio.h>
+#include <stdlib.h>
+
+// void myprint(char* s) {
+// 	printf("%s\n", s);
+// }
+*/
+import "C"
+
+// import "unsafe"
+
+//export Heihei
+func Heihei() string {
+	return "heihei"
+}
+
+//export Haha
+func Haha() string {
+	return "haha"
+}
+
+type Data struct {
+	F float64
+	U uint8
+	N string
+}
+
+func main() {
+	buff := make([]byte, 1024)
+
+	s := buff[8:binary.MaxVarintLen64]
+
+	binary.PutUvarint(s, 1024)
+
+	fmt.Println(buff)
+
+	data := Data{
+		math.Pi,
+		uint8(32),
+		"Hello world.",
+	}
+
+	buf := new(bytes.Buffer)
+
+	enc := gob.NewEncoder(buf)
+	dec := gob.NewDecoder(buf)
+
+	enc.Encode(data)
+
+	fmt.Printf("buf : % x\n", buf.Bytes())
+
+	out := new(Data)
+
+	if err := dec.Decode(out); err != nil {
+		fmt.Println("binary.Read failed:", err)
+	}
+
+	fmt.Println(out.F)
+	fmt.Println(out.U)
+	fmt.Println(out.N)
+
+	// cs := C.CString("Hello from stdio\n")
+	// C.myprint(cs)
+	// C.free(unsafe.Pointer(cs))
+}

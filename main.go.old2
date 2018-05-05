@@ -1,0 +1,113 @@
+package main
+
+import (
+	// "io"
+	// "log"
+	// "net/http"
+	// "os"
+	// "strings"
+	"fmt"
+	"math"
+	"time"
+
+	"database/sql"
+	_ "github.com/lib/pq"
+
+	"log"
+)
+
+// func HelloServer(w http.ResponseWriter, req *http.Request) {
+// 	io.WriteString(w, "hello, world!\n")
+// }
+
+var greeting map[string]string = map[string]string{
+	"english":  "Greeting",
+	"chinese":  "你好",
+	"japanese": "こんにちは",
+}
+
+type Vertex struct {
+	X float64
+	Y float64
+}
+
+type CallbackFunc func(in int) int
+
+type WorkerInfo struct {
+	Callback *CallbackFunc
+	Payload  []byte
+}
+
+func main() {
+	// f, err := os.OpenFile("./common.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	// if err != nil {
+	// 	log.Fatalf("error opening file: %v", err)
+	// }
+	// defer (func() {
+	// 	f.Close()
+	// })()
+
+	// log.SetOutput(f)
+
+	// log.Printf("This is a test.\n")
+
+	// // http.HandleFunc("/hello", HelloServer)
+	// // log.Fatal(http.ListenAndServe(":12345", nil))
+
+	// r1 := strings.NewReader("first reader ")
+	// r2 := strings.NewReader("second reader ")
+	// r3 := strings.NewReader("third reader\n")
+	// r := io.MultiReader(r1, r2, r3)
+
+	// if _, err := io.Copy(os.Stdout, r); err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	var v []Vertex = make([]Vertex, 100000)
+
+	start := time.Now()
+
+	for i, _ := range v {
+		v[i].X = float64(i) * (float64(2.0) * math.Pi / float64(len(v)))
+		v[i].Y = math.Sin(float64(i))
+	}
+
+	end := time.Now()
+
+	fmt.Printf("INTERVAL : %f\n", float64(end.UTC().UnixNano()-start.UTC().UnixNano())/float64(time.Millisecond))
+
+	db, err := sql.Open("postgres", "user=postgres dbname=mes1.5 password=passw0rd sslmode=disable")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer db.Close()
+
+	var (
+		id    int64
+		wipno string
+	)
+
+	rows, err := db.Query("SELECT id, wipno FROM exec_wip ORDER BY ID DESC LIMIT 10")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		err := rows.Scan(&id, &wipno)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println(id, wipno)
+	}
+	err = rows.Err()
+	if err != nil {
+		log.Fatal(err)
+	}
+}

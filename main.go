@@ -1,62 +1,119 @@
 package main
 
-import "fmt"
-import "os"
+import (
+	"flag"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"net"
+	"os"
+)
 
-import "strings"
+const PROTOCOL string = "tcp"
 
-import "net"
-import "bufio"
+var (
+	command string
+	addr    string
+)
 
-import "wrapper"
+func Init() {
+	flag.StringVar(&command, "c", "server", "The command (server | client).")
+	flag.StringVar(&addr, "a", ":1234", "The address.")
+	flag.Parse()
 
-func dumpEnv() {
-	fmt.Println(os.Args)
-
-	x, y, xy := tripple(3, 5)
-
-	fmt.Println(x, y, xy)
-
-	fmt.Println(os.Getenv("KEY1"))
-
-	for i, e := range os.Environ() {
-		pair := strings.Split(e, "=")
-		fmt.Println(i, pair[0], pair[1])
-	}
+	fmt.Printf("command : %s, addr : %s \n", command, addr)
 }
 
-func tripple(x int, y int) (int, int, int) {
-	return x, y, x + y
-}
-
-func doServer() {
-	addr, _ := net.LookupTXT("www.baidu.com")
-
-	fmt.Println(addr)
-
-	ln, err := net.Listen("tcp", ":1234")
-
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	conn, _ := ln.Accept()
+func Process(cc *net.TCPConn) {
+	buf := make([]byte, 1024)
 
 	for {
-		message, err := bufio.NewReader(conn).ReadString('\n')
+		i, err := cc.Read(buf)
 
-		if err != nil {
-			fmt.Println(err)
+		if io.EOF == err {
 			break
 		}
 
-		fmt.Print("Message Received:", string(message))
-		newmessage := strings.ToUpper(message)
-		conn.Write([]byte(newmessage + "\n"))
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println(string(buf[:i]))
 	}
 }
 
+func Server() {
+	fmt.Println("[server]")
+	laddr, err := net.ResolveTCPAddr(PROTOCOL, addr)
+
+	if err != nil {
+		panic(err)
+	}
+
+	conn, err := net.ListenTCP(PROTOCOL, laddr)
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer conn.Close()
+
+	cc, err := conn.AcceptTCP()
+
+	if err != nil {
+		panic(err)
+	}
+
+	Process(cc)
+}
+
+func Client() {
+	fmt.Println("[client]")
+
+	raddr, err := net.ResolveTCPAddr(PROTOCOL, addr)
+
+	if err != nil {
+		panic(err)
+	}
+
+	conn, err := net.DialTCP(PROTOCOL, nil, raddr)
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer conn.Close()
+
+	bytes, err := ioutil.ReadAll(os.Stdin)
+
+	if err != nil {
+		panic(err)
+	}
+
+	str := string(bytes)
+
+	o := fmt.Sprintf("\x02%d\x01%s\x03", len(bytes), str)
+
+	i, err := conn.Write([]byte(o))
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("i : ", i)
+
+	x, err := io.Copy(os.Stdout, conn)
+
+	fmt.Println("x : ", x)
+}
+
 func main() {
-	n, str := wrapper.LoadFromStdIn()
-	fmt.Printf("\x02%d\x01%s\x03\n", n, str)
+	Init()
+
+	switch command {
+	case "server":
+		Server()
+	case "client":
+		Client()
+	}
 }
