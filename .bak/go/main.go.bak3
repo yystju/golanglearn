@@ -1,0 +1,42 @@
+package main
+
+import (
+	// "log"
+	"os"
+	"path/filepath"
+	"plugin"
+	"strconv"
+)
+
+func main() {
+	path, err := filepath.Abs("../goplugin/goplugin.so")
+
+	if err != nil {
+		panic(err)
+	}
+
+	p, err := plugin.Open(path)
+
+	if err != nil {
+		panic(err)
+	}
+
+	s, err := p.Lookup("CheckPrime")
+
+	if err != nil {
+		panic(err)
+	}
+
+	f := (s).(func(n int) bool)
+
+	var n int = 10
+
+	if len(os.Args) >= 2 {
+		n, _ = strconv.Atoi(os.Args[1])
+	}
+
+	for i := 2; i <= n; i++ {
+		//log.Printf("%d : %t", i, f(i))
+		f(i)
+	}
+}

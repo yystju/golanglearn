@@ -1,0 +1,75 @@
+package main
+
+import (
+	"bufio"
+	"log"
+	"strings"
+
+	"encoding/xml"
+	"fmt"
+	// "os"
+
+	"bytes"
+)
+
+func main() {
+	const input = "\x024\x01abcd\x03\x024\x01bcde\x03\x024\x01cded"
+	scanner := bufio.NewScanner(strings.NewReader(input))
+	split := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		log.Println(">>" + string(token))
+
+		for i := 0; i < len(data); i++ {
+			if data[i] == '\x03' {
+				return i + 1, data[:i], nil
+			}
+		}
+
+		return 0, data, bufio.ErrFinalToken
+	}
+
+	scanner.Split(split)
+
+	for scanner.Scan() {
+		log.Printf("%v\n", []byte(scanner.Text()))
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Printf("Invalid input: %s\n", err)
+	}
+
+	type Address struct {
+		City, State string
+	}
+	type Person struct {
+		XMLName   xml.Name `xml:"person"`
+		Id        int      `xml:"id,attr"`
+		FirstName string   `xml:"name>first"`
+		LastName  string   `xml:"name>last"`
+		Age       int      `xml:"age"`
+		Height    float32  `xml:"height,omitempty"`
+		Married   bool
+		Address
+		Comment string `xml:",comment"`
+	}
+
+	v := &Person{Id: 13, FirstName: "John", LastName: "Doe", Age: 42}
+	v.Comment = " Need more details. "
+	v.Address = Address{"Hanga Roa", "Easter Island"}
+
+	var b bytes.Buffer
+
+	enc := xml.NewEncoder(&b)
+	enc.Indent("  ", "    ")
+	if err := enc.Encode(v); err != nil {
+		fmt.Printf("error: %v\n", err)
+	}
+
+	fmt.Println(string(b.Bytes()))
+
+	dec := xml.NewDecoder(&b)
+
+	var v1 Person
+	dec.Decode(&v1)
+
+	fmt.Println("v1.XMLName : ", v1.XMLName)
+}

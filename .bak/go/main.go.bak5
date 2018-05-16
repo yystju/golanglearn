@@ -1,0 +1,87 @@
+package main
+
+import (
+	"bufio"
+	"bytes"
+	// "encoding/xml"
+	"fmt"
+	"log"
+	"net"
+	"strconv"
+)
+
+// #cgo CFLAGS: -I${SRCDIR}/clibs
+// #cgo LDFLAGS: -L${SRCDIR}/clibs -lhello
+// #include "test.h"
+//
+import "C"
+
+func packageSpliter(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	for i := 0; i < len(data); i++ {
+		if data[i] == '\x03' {
+			return i + 1, data[:i], nil
+		}
+	}
+
+	if atEOF {
+		return 0, data, bufio.ErrFinalToken
+	} else {
+		return 0, nil, nil
+	}
+}
+
+var queue chan string = make(chan string)
+
+func p(c net.Conn) {
+	for {
+		xml := <-queue
+
+		log.Printf(">> process xml : %s\n", xml)
+
+		result := "Hello, This is a test."
+
+		c.Write([]byte(fmt.Sprintf("\x02%s\x01%s\x03", strconv.Itoa(len(result)), result)))
+	}
+}
+
+func h(c net.Conn) {
+	go p(c)
+
+	scanner := bufio.NewScanner(c)
+
+	scanner.Split(packageSpliter)
+
+	for scanner.Scan() {
+		txt := scanner.Bytes()
+
+		idx := bytes.IndexByte(txt, '\x01')
+
+		if len(txt) > 0 && idx != -1 {
+			queue <- string(txt[idx+1:])
+		}
+	}
+
+	c.Close()
+}
+
+func main() {
+	l, err := net.Listen("tcp", ":1234")
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer l.Close()
+
+	for {
+		c, err := l.Accept()
+
+		if err != nil {
+			continue
+		}
+
+		log.Println("connection: ", c)
+
+		go h(c)
+	}
+}

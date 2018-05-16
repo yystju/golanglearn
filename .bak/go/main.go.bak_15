@@ -1,0 +1,123 @@
+package main
+
+import (
+	"flag"
+	"image"
+	// "image/color"
+	"image/gif"
+	"image/jpeg"
+	"image/png"
+	"log"
+	"os"
+	"path/filepath"
+	// "strings"
+)
+
+var (
+	inputFilePathName  string
+	outputFilePathName string
+	command            int
+	logFolder          string
+	logFileName        string
+
+	logger *log.Logger
+)
+
+func Init() {
+	flag.StringVar(&inputFilePathName, "i", "", "The input file path name. If it's left blank, that will indicates to use stdin.")
+	flag.StringVar(&outputFilePathName, "o", "", "The output file path name. If it's left blank, that will indicates to use stdout.")
+	flag.StringVar(&logFolder, "L", "./logs", "The log folder.")
+	flag.StringVar(&logFileName, "l", "out.log", "The log file name.")
+	flag.IntVar(&command, "c", 0, "The transform command to be applied to the input.")
+	flag.Parse()
+
+}
+
+func InitLogger() {
+	_, err := os.Stat(logFolder)
+
+	if os.IsNotExist(err) {
+		os.MkdirAll(logFolder, 0755)
+	}
+
+	logFilePathName := filepath.Join(logFolder, logFileName)
+
+	file, _ := os.Create(logFilePathName)
+	logger = log.New(file, "]", log.Lshortfile)
+
+}
+
+func Command0(bound image.Rectangle, img image.Image) {
+	for i := 0; i < bound.Size().X; i++ {
+		for j := 0; j < bound.Size().Y; j++ {
+			c := img.At(i, j)
+			r, g, b, a := c.RGBA()
+			logger.Printf("(%d, %d) -> [%d, %d, %d]\n", i, j, r, g, b, a)
+		}
+	}
+}
+
+func main() {
+	Init()
+	InitLogger()
+
+	logger.Printf("[START] inputFilePathName : %s, outputFilePathName : %s, command : %d\n", inputFilePathName, outputFilePathName, command)
+
+	in := os.Stdin
+	out := os.Stdout
+
+	logger.Println(out)
+
+	if inputFilePathName != "" {
+		i, err := os.OpenFile(inputFilePathName, os.O_RDONLY, 0666)
+
+		if err != nil {
+			panic(err)
+		}
+
+		defer i.Close()
+
+		in = i
+	}
+
+	if outputFilePathName != "" {
+		o, err := os.OpenFile(outputFilePathName, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+
+		if err != nil {
+			panic(err)
+		}
+
+		defer o.Close()
+
+		out = o
+	}
+
+	img, fmt, err := image.Decode(in)
+
+	if err != nil {
+		panic(err)
+	}
+
+	logger.Println("image format is : ", fmt)
+
+	// c := color.NRGBA{0x88, 0xEE, 0x66, 0xFF}
+
+	bound := img.Bounds()
+
+	switch command {
+	case 0:
+		Command0(bound, img)
+	default:
+		panic("Error")
+	}
+
+	switch fmt {
+	case "jpeg":
+		jpeg.Encode(out, img, &(jpeg.Options{100}))
+	case "png":
+		png.Encode(out, img)
+	case "gif":
+		gif.Encode(out, img, nil)
+	}
+
+}

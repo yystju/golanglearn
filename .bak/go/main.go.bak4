@@ -1,0 +1,21 @@
+package main
+
+import (
+	"io"
+	"net/http"
+	"os"
+)
+
+func main() {
+	if len(os.Args) >= 2 {
+		r, err := http.Get(os.Args[1])
+
+		if err != nil {
+			panic(err)
+		}
+
+		defer r.Body.Close()
+
+		io.Copy(os.Stdout, r.Body)
+	}
+}

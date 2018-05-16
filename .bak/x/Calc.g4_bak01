@@ -1,0 +1,26 @@
+// Calc.g4
+grammar Calc;
+
+// Tokens
+MUL: '乘';
+DIV: '除';
+ADD: '加';
+SUB: '减';
+
+DIGIT: ('壹'|'贰'|'叁'|'肆'|'伍'|'陆'|'柒'|'捌'|'玖') ;
+MAGNITUDE: ('零'|'拾'|'佰'|'仟'|'万'|'亿') ;
+
+// NUMBER: ((DIGIT MAGNITUDE)+ (DIGIT)?) | DIGIT ;
+NUMBER: DIGIT MAGNITUDE ;
+
+WHITESPACE: [ \r\n\t]+ -> skip;
+
+// Rules
+start : expression EOF;
+
+expression
+   : expression op=(MUL|DIV) expression # MulDiv
+   | expression op=(ADD|SUB) expression # AddSub
+   | NUMBER                             # Number
+   ;
+

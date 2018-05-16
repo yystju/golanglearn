@@ -1,0 +1,10 @@
+all: x
+
+x: Calc.g4
+	java -cp "/Users/shiquan/bin/antlr-4.7.1-complete.jar:$CLASSPATH" org.antlr.v4.Tool -Dlanguage=Go -o parser Calc.g4
+	go build -o calc
+
+clean:
+	rm -f calc
+	rm -rf parser
+

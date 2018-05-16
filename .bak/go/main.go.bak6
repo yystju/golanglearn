@@ -1,0 +1,80 @@
+package main
+
+import (
+	"fmt"
+	"os"
+	"strconv"
+	"sync"
+	"time"
+)
+
+var latch sync.WaitGroup
+var done sync.WaitGroup
+
+type Result struct {
+	Value     int
+	IsPrime   bool
+	Timestamp time.Duration
+}
+
+var c0 chan int = make(chan int, 1024)
+var r0 chan *Result = make(chan *Result, 1024)
+
+func o() {
+	cnt := 0
+
+	for {
+		r := <-r0
+
+		cnt++
+
+		fmt.Printf("\r count : %d, last : %d", cnt, r.Timestamp/time.Millisecond)
+	}
+}
+
+func p(i int) {
+	latch.Wait()
+
+	start := time.Now()
+
+	for j := 2; j < i; j++ {
+		if i%j == 0 {
+			r0 <- &Result{i, true, time.Now().Sub(start)}
+			break
+		}
+	}
+
+	r0 <- &Result{i, false, time.Now().Sub(start)}
+
+	done.Done()
+}
+
+func d() {
+	for {
+		i := <-c0
+		go p(i)
+	}
+}
+
+func main() {
+	N := 1024 * 5
+
+	if len(os.Args) >= 2 {
+		N, _ = strconv.Atoi(os.Args[1])
+	}
+
+	latch.Add(1)
+
+	done.Add(N)
+
+	go d()
+	go o()
+
+	for i := 2; i < N+2; i++ {
+		c0 <- N
+	}
+
+	latch.Done()
+
+	done.Wait()
+}

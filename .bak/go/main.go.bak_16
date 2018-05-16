@@ -1,0 +1,102 @@
+package main
+
+import (
+	"flag"
+	"fmt"
+	"io"
+	"net"
+	"os"
+)
+
+var (
+	command string
+	addr    string
+)
+
+func Init() {
+	flag.StringVar(&command, "c", "server", "The command (server | client).")
+	flag.StringVar(&addr, "a", ":1234", "The address.")
+	flag.Parse()
+
+	fmt.Printf("command : %s, addr : %s \n", command, addr)
+}
+
+func Server() {
+	fmt.Println("[server]")
+	udpAddr, err := net.ResolveUDPAddr("udp4", addr)
+
+	if err != nil {
+		panic(err)
+	}
+
+	conn, err := net.ListenUDP("udp4", udpAddr)
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer conn.Close()
+
+	buf := make([]byte, 1024)
+
+	for {
+		i, err := conn.Read(buf)
+
+		if io.EOF == err {
+			break
+		}
+
+		if err != nil {
+			panic(err)
+		}
+
+		//fmt.Println(string(buf[:i]))
+
+		fmt.Println(i)
+	}
+}
+
+func Client() {
+	fmt.Println("[client]")
+
+	udpAddr, err := net.ResolveUDPAddr("udp4", addr)
+
+	if err != nil {
+		panic(err)
+	}
+
+	conn, err := net.DialUDP("udp4", nil, udpAddr)
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer conn.Close()
+
+	i, err := io.Copy(conn, os.Stdin)
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("i : ", i)
+}
+
+func main() {
+	Init()
+
+	// iface, err := net.InterfaceByName("en0")
+
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// fmt.Println(iface)
+
+	switch command {
+	case "server":
+		Server()
+	case "client":
+		Client()
+	}
+}

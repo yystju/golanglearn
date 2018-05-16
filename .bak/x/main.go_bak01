@@ -1,0 +1,166 @@
+package main
+
+import (
+	"./parser"
+	// "errors"
+	"flag"
+	"fmt"
+	"github.com/antlr/antlr4/runtime/Go/antlr"
+	// "strconv"
+)
+
+// func ChineseAtoi(text string) int {
+// 	chars := []rune(text)
+//
+// 	for i := 0; i < len(chars); i++ {
+// 		fmt.Println(ChineseRunetoInt(chars[i]))
+// 	}
+//
+// 	return -1
+// }
+//
+// func ChineseRunetoInt(char rune) int {
+// 	//'壹'|'贰'|'叁'|'肆'|'伍'|'陆'|'柒'|'捌'|'玖'|'零'|'拾'|'佰'|'仟'|'万'|'亿'
+// 	switch char {
+// 	case '壹':
+// 		return 1
+// 	case '贰':
+// 		return 2
+// 	case '叁':
+// 		return 3
+// 	case '肆':
+// 		return 4
+// 	case '伍':
+// 		return 5
+// 	case '陆':
+// 		return 6
+// 	case '柒':
+// 		return 7
+// 	case '捌':
+// 		return 8
+// 	case '玖':
+// 		return 9
+// 	case '零':
+// 		return 0
+// 	case '拾':
+// 		return 10
+// 	case '佰':
+// 		return 100
+// 	case '仟':
+// 		return 1000
+// 	case '万':
+// 		return 10000
+// 	case '亿':
+// 		return 100000000
+// 	default:
+// 		panic(errors.New(fmt.Sprintf("'%c' cannot be recongnized...", char)))
+// 	}
+// }
+
+type CalcListenerType struct {
+	*parser.BaseCalcListener
+	stack []int
+}
+
+func (l *CalcListenerType) push(i int) {
+	fmt.Println("[PUSH] ", i)
+	l.stack = append(l.stack, i)
+}
+
+func (l *CalcListenerType) pop() int {
+	if len(l.stack) < 1 {
+		panic("stack is empty unable to pop")
+	}
+
+	result := l.stack[len(l.stack)-1]
+
+	l.stack = l.stack[:len(l.stack)-1]
+
+	fmt.Println("[POP] ", result)
+
+	return result
+}
+
+func (l *CalcListenerType) ExitMulDiv(c *parser.MulDivContext) {
+	right, left := l.pop(), l.pop()
+
+	fmt.Printf("[ExitMulDiv] right (%d), left (%d)\n", right, left)
+
+	switch c.GetOp().GetTokenType() {
+	case parser.CalcParserMUL:
+		l.push(left * right)
+	case parser.CalcParserDIV:
+		l.push(left / right)
+	default:
+		panic(fmt.Sprintf("unexpected op: %s", c.GetOp().GetText()))
+	}
+}
+
+func (l *CalcListenerType) ExitAddSub(c *parser.AddSubContext) {
+	right, left := l.pop(), l.pop()
+
+	fmt.Printf("[ExitAddSub] right (%d), left (%d)\n", right, left)
+
+	switch c.GetOp().GetTokenType() {
+	case parser.CalcParserADD:
+		l.push(left + right)
+	case parser.CalcParserSUB:
+		l.push(left - right)
+	default:
+		panic(fmt.Sprintf("unexpected op: %s", c.GetOp().GetText()))
+	}
+}
+
+func (l *CalcListenerType) ExitNumber(c *parser.NumberContext) {
+	fmt.Println("[ExitNumber]", c.GetText())
+
+	// i, err := strconv.Atoi(c.GetText())
+	// if err != nil {
+	// 	panic(err.Error())
+	// }
+
+	i := 0
+
+	fmt.Printf("[ExitNumber] i (%d)\n", i)
+
+	l.push(i)
+}
+
+func calc(input string) int {
+	// Setup the input
+	is := antlr.NewInputStream(input)
+
+	// Create the Lexer
+	lexer := parser.NewCalcLexer(is)
+	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
+
+	// Create the Parser
+	p := parser.NewCalcParser(stream)
+
+	// Finally parse the expression (by walking the tree)
+
+	listener := new(CalcListenerType)
+
+	antlr.ParseTreeWalkerDefault.Walk(listener, p.Start())
+
+	return listener.pop()
+}
+
+var (
+	exp string
+)
+
+func init() {
+	flag.StringVar(&exp, "e", "拾 加 拾壹", "The expression to evaluate.")
+	flag.Parse()
+}
+
+func main() {
+	// is := antlr.NewInputStream(exp)
+	// lexer := parser.NewCalcLexer(is)
+	// stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
+	// p := parser.NewCalcParser(stream)
+	// antlr.ParseTreeWalkerDefault.Walk(&calcListener{}, p.Start())
+
+	fmt.Println(calc(exp))
+}
